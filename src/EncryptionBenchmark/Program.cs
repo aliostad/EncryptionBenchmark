@@ -36,7 +36,11 @@ namespace EncryptionBenchmark
             }
             sw.Stop();
             Console.WriteLine(sw.Elapsed);
-            EncryptDecryptAndDispose(aes.CreateEncryptor(), aes.CreateDecryptor(), data);
+            Action doAes = () => EncryptDecryptAndDispose(aes.CreateEncryptor(), aes.CreateDecryptor(), data);
+            doAes.Repeat(10 * 1000 * 1000)
+                .OutputPerformance(sw, (s) => Console.WriteLine(s));
+
+                
 
             aes.Dispose();
             Console.Read();
@@ -65,6 +69,37 @@ namespace EncryptionBenchmark
         }
     }
 
+    public static class ActionExtensions
+    {
+        public static Action Wrap(this Action action, Action pre, Action post)
+        {
+            return () =>
+            {
+                pre();
+                action();
+                post();
+            };
+        }
+
+        public static Action OutputPerformance(this Action action, Stopwatch stopwatch, Action<string> output)
+        {
+            return action.Wrap(
+             () => stopwatch.Start(),
+             () =>
+             {
+                 stopwatch.Stop();
+                 output(stopwatch.Elapsed.ToString());
+                 stopwatch.Reset();
+             }
+             );
+        }
+
+        public static Action Repeat(this Action action, int times)
+        {
+            return () => Enumerable.Range(1, times).ToList()
+             .ForEach(x => action());
+        }
+    }
 
     static class ArrayExtensions
     {
