@@ -12,6 +12,8 @@ namespace EncryptionBenchmark
     {
         static void Main(string[] args)
         {
+            const int n = 10 * 1000;
+            var sw = new Stopwatch();
             Random r = new Random();
             var data = new byte[1024];
             var key8B = new byte[8];
@@ -23,26 +25,68 @@ namespace EncryptionBenchmark
             r.NextBytes(key16B);
             r.NextBytes(key24B);
             r.NextBytes(key32B);
-            
+            Action<string> outputToConsole = (s) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(s);
+            };
 
+            // AES
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("AES");
             var aes = new AesCryptoServiceProvider();
             aes.Padding = PaddingMode.PKCS7;
             aes.Key = key16B;
-
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < 10000000; i++)
-            {
-                
-            }
-            sw.Stop();
-            Console.WriteLine(sw.Elapsed);
             Action doAes = () => EncryptDecryptAndDispose(aes.CreateEncryptor(), aes.CreateDecryptor(), data);
-            doAes.Repeat(10 * 1000 * 1000)
-                .OutputPerformance(sw, (s) => Console.WriteLine(s));
-
-                
-
+            doAes.Repeat(n)
+                .OutputPerformance(sw, outputToConsole)();
             aes.Dispose();
+            
+            // RSA
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("DES");
+            var des = new DESCryptoServiceProvider();
+            des.IV = key8B;
+            des.Key = key8B;
+            Action doDes = () => EncryptDecryptAndDispose(des.CreateEncryptor(), des.CreateDecryptor(), data);
+            doDes.Repeat(n)
+                .OutputPerformance(sw, outputToConsole)();
+            des.Dispose();
+
+            // RC2
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("RC2");
+            var rc2 = new RC2CryptoServiceProvider();
+            rc2.IV = key8B;
+            rc2.Key = key8B;
+            Action doRc2 = () => EncryptDecryptAndDispose(rc2.CreateEncryptor(), rc2.CreateDecryptor(), data);
+            doRc2.Repeat(n)
+                .OutputPerformance(sw, outputToConsole)();
+            rc2.Dispose();
+
+            // Rijndael
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("Rijndael");
+            var rijndael = new RijndaelManaged();
+            rijndael.IV = key16B;
+            rijndael.Key = key16B;
+            Action doRijndael = () => EncryptDecryptAndDispose(rijndael.CreateEncryptor(), rijndael.CreateDecryptor(), data);
+            doRijndael.Repeat(n)
+                .OutputPerformance(sw, outputToConsole)();
+            rijndael.Dispose();
+
+            // 3DES
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("3DES");
+            var tripleDes = new TripleDESCryptoServiceProvider();
+            tripleDes.IV = key8B;
+            tripleDes.Key = key24B;
+            Action do3des = () => EncryptDecryptAndDispose(tripleDes.CreateEncryptor(), tripleDes.CreateDecryptor(), data);
+            do3des.Repeat(n)
+                .OutputPerformance(sw, outputToConsole)();
+            tripleDes.Dispose();
+
+
             Console.Read();
         }
 
@@ -61,8 +105,8 @@ namespace EncryptionBenchmark
         {
             var encryptedData = crypto.TransformFinalBlock(data, 0, data.Length);
             var decryptedData = decrypto.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
-            if (!decryptedData.AllEqual(data))
-                throw new InvalidProgramException();
+            //if (!decryptedData.AllEqual(data))
+               // throw new InvalidProgramException();
 
             crypto.Dispose();
             decrypto.Dispose();
