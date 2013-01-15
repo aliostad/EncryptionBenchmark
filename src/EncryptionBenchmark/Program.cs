@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 namespace EncryptionBenchmark
 {
@@ -86,6 +87,37 @@ namespace EncryptionBenchmark
                 .OutputPerformance(sw, outputToConsole)();
             tripleDes.Dispose();
 
+            // RSA
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine("RSA");
+            RSAParameters param = new RSAParameters();
+            param.Exponent = new byte[] {0, 1, 0};
+            var store = new X509Store(StoreLocation.LocalMachine);
+            store.Open(OpenFlags.ReadOnly);
+            X509Certificate cert = null;
+            foreach (X509Certificate cer in store.Certificates)
+            {
+                if (cer != null)
+                {
+                    cert = cer;
+                    break;
+                }
+            }
+            param.Modulus = cert.GetPublicKey();
+            
+            var rsa = new RSACryptoServiceProvider();
+            rsa.ImportParameters(param);
+            
+
+            Action doRsa = () =>
+                {
+
+                    var encryptedData = rsa.Encrypt(key32B, true);
+                    //var decryptedData = rsa.Decrypt(encryptedData, true);
+                };
+            doRsa.Repeat(n)
+                .OutputPerformance(sw, outputToConsole)();
+            rsa.Dispose();
 
             Console.Read();
         }
@@ -105,6 +137,8 @@ namespace EncryptionBenchmark
         {
             var encryptedData = crypto.TransformFinalBlock(data, 0, data.Length);
             var decryptedData = decrypto.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
+            
+            // NOTE: no need to check if they are equal
             //if (!decryptedData.AllEqual(data))
                // throw new InvalidProgramException();
 
