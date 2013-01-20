@@ -13,7 +13,7 @@ namespace EncryptionBenchmark
     {
         static void Main(string[] args)
         {
-            const int n = 10 * 1000;
+            const int n = 100 * 1000;
             var sw = new Stopwatch();
             Random r = new Random();
             var data = new byte[1024];
